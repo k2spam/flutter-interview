@@ -86,7 +86,7 @@ void main() {
 }
 ```
 
-`Абстракция` позволяет скрывать детали реализации и предоставлять только фажную функциональность. В Dart можно реализовать через абстрактные классы или интерфейсы. Абстрактные классы нельзя инстанцииоровать напрямую, они могут содержать как абстрактные методы (без реализации), так и конкретные методы с реализацией.
+`Абстракция` позволяет скрывать детали реализации и предоставлять только фажную функциональность. В Dart можно реализовать через абстрактные классы или интерфейсы. Абстрактные классы нельзя инстанциировать напрямую, они могут содержать как абстрактные методы (без реализации), так и конкретные методы с реализацией.
 
 ```dart
 abstract class Vehicle {
@@ -390,9 +390,296 @@ class Switch {
 
 ### Паттерны/шаблоны проектирования
 
+Паттерны проектирования бывают:
+
+- Порождающие (создание объекта)
+- Структурные (построение сложных структур объектов)
+- Поведенческие (взаимодействие между объектами)
+
+### 1. Singleton
+
+`Порождающий паттерн`
+
+Гарантирует, что у класса будет только один экземпляр т предоставляет глобальную точку доступа к этому экземпляру.
+
+```dart
+class Singleton {
+    static final Singleton _instance = Singleton._internal();
+
+    // Приватный конструктор класса
+    Singleton._internal();
+
+    // Единственный экземпляр класса
+    static Singleton get instance => _instance;
+
+    // Пример метода в синглоне
+    void process() {
+        print('singleton');
+    }
+}
+
+void main() {
+    final config = Singleton.instance;
+    config.process();
+}
+```
+
+### 2. Factory
+
+`Порождающий паттерн`
+
+Паттерн фабрики позволяет создавать экземпляр нужного подкласса из нескольких в зависимости от условий. Например есть несколько разных типов кнопок или методов оплаты и в зависимости от текущей платформы необходимо создать подходящий экземпляр.
+
+```dart
+abstract class Button {
+    void render();
+}
+
+class IOSButton extends Button {
+    @override
+    void render() {}
+}
+
+class AndroidButton extends Button {
+    @override
+    void render() {}
+}
+
+class ButtonFactory {
+    static Button createButton(String platform) {
+        if(platform == 'IOS') {
+            return IOSButton();
+        } 
+        else if (platform == 'Android') {
+            return AndroidButton();
+        }
+        else {
+            throw Exception('Unknown platform');
+        }
+    }
+}
+
+void main() {
+    print(ButtonFactory.createButton('IOS')); // Instance of 'IOSButton'
+    print(ButtonFactory.createButton('Android')); // Instance of 'AndroidButton'
+    print(ButtonFactory.createButton('ios')); // Exception
+}
+```
+
+### 3. Builder
+
+`Порождающий паттерн`
+
+Позволяет создавать сложные обхекты пошагово, скрывая внутренние детали создания, это полезно, когда объект имеет большое количество настроек.
+
+```dart
+class House {
+    final String foundation;
+    final String structure;
+    final String roof;
+
+    House._builder(HouseBuilder builder) :
+        foundation = builder.foundation,
+        structure = builder.structure,
+        roof = builder.roof;
+
+    @override
+    String toString() {
+        return "House: $foundation, $structure, $roof";
+    }
+}
+
+class HouseBuilder {
+    String foundation = "Base foundation";
+    String structure = "Base structure";
+    Strign roof = "Base roof";
+
+    HouseBuilder setFoundation(String foundation) {
+        this.foundation = foundation;
+        return this;
+    }
+
+    HouseBuilder setStructure(String structure) {
+        this.structure = structure;
+        return this;
+    }
+
+    HouseBuilder setRoof(String roof) {
+        this.roof = roof;
+        return this;
+    }
+
+    House build() {
+        return House._builder(this);
+    }
+}
+
+void main() {
+    House house1 = HouseBuilder().build();
+    House house2 = HouseBuilder()
+        .setFoundation('1')
+        .setFoundation('2')
+        .setFoundation('3')
+        .build();
+
+    print(house1); // House: Base foundation, Base structure, Base roof
+    print(house2); // House: 1, 2, 3
+}
+```
+
+### 4. Observer
+
+`Поведенческий паттерн`
+
+Определяет зависимость `один ко многим`, при которой изменение состояния одного объекта приводит к уведомлению и обновлению всех зависимых объектов
+
+```dart
+abstract class Observer {
+    void update();
+}
+
+class Subject {
+    List<Observer> _observers = [];
+
+    void attach(Observer observer) {
+        this._observers.add(observer);
+    }
+
+    void notifyAll() {
+        for(Observer observer in _observers) {
+            observer.update();
+        }
+    }
+}
+
+class Listener implements Observer {
+    final String _name;
+
+    Listener(this._name);
+
+    @override
+    void update() {
+        print('$_name updated');
+    }
+}
+
+void main() {
+    Subject subject = Subject();
+
+    Listener listener1 = Listener('Listener 1');
+    Listener listener2 = Listener('Listener 2');
+
+    subject.attach(listener1);
+    subject.attach(listener2);
+
+    subject.notifyAll(); // Listener 1 updated
+                         // Listener 2 updated
+}
+```
+
+### 5. Strategy
+
+`Поведенческий паттерн`
+
+Определяет семейство алгоритмов, инкапсулирует каждый из них и делает их взаимозаменяемыми, что позволяет переключаться между алгоритмами на лету.
+
+```dart
+abstract class PaymentStrategy {
+    void pay(double amount);
+}
+
+class CreditCardPayment implements PaymentStrategy {
+    @override
+    void pay(double amount) {
+        print('Paid $amount using credit card');
+    }
+}
+
+class PayPalPayment implements PaymentStrategy {
+    @override
+    void pay(double amount) {
+        print('Paid $amount using PayPal')
+    }
+}
+
+class PaymentContext {
+    PaymentStrategy? _strategy;
+
+    void setStrategy(PaymentStrategy strategy) {
+        _strategy = strategy;
+    }
+
+    void process(double amount) {
+        _strategy?.pay(amount);
+    }
+}
+
+void main() {
+    PaymentContext payment = PaymentContext();
+
+    payment.setStrategy(CreditCardPayment());
+    payment.process(100); // Paid 100 using credit card
+
+    payment.setStrategy(PayPalPayment());
+    payment.process(122); // Paid 122 using PayPal
+}
+```
+
+### 6. Decorator
+
+`Структурный паттерн`
+
+Позволяет динамически добавлять поведение объектам, оборачивая их в другие объекты
+
+```dart
+abstract class Coffee {
+    String description();
+    double cost();
+}
+
+class SimpleCoffee implements Coffee {
+    @override
+    String decoration() => "Simple coffee";
+
+    @override
+    double cost() => 3;
+}
+
+class CoffeeWithMilkDecorator implements Coffee {
+    Coffee coffee;
+
+    CoffeeWithMildDecorator(this.coffee);
+
+    @override
+    String description() => coffee.description() + " with milk";
+
+    @override
+    double cost() => coffee.cost() + 2;
+}
+
+void main() {
+    Coffee simpleCoffee = SimpleCoffee();
+    Coffee coffeeWithMilk = CoffeeWithMilkDecorator(simpleCoffee);
+
+    print(simpleCoffee.description()); // Simple coffee
+    print(simpleCoffee.cost()); // 3
+
+    print(coffeeWithMilk.description()); // Simple coffee with milk
+    print(coffeeWithMilk.cost()); // 5
+}
+```
+
 ---
 
 ### Виды архитектур MVP, MVC MVVM
+
+Архитектурные паттерны используются для того чтобы разделить логику, представление и работу с данными.
+
+### MVC (Model-View-Controller)
+
+### MVP (Model-View-Presenter)
+
+### MVVM (Model-View-ViewModel)
 
 ---
 
@@ -436,7 +723,7 @@ class Switch {
 
 ## Вопросы по фреймворку Flutter
 
-### Statful и Stateless widgets
+### Stateful и Stateless widgets
 
 ---
 
